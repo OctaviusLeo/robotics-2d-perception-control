@@ -1,4 +1,5 @@
 # Robotics 2D — Perception + Control Loop (Demo)
+This is purely virtual. There is no hardware involved hwoever if implemented, it should work. 
 
 A minimal robotics-style loop:
 **sense (camera frame) -> perceive (detect target) -> control (drive robot) -> act (update state)**
@@ -22,7 +23,7 @@ python src/run_demo.py
 python src/run_demo.py --headless --steps 600
 ```
 
-## What to improve next (resume upgrades)
+## Future Features
 - Replace color thresholding with a small detector (even a tiny CNN) + latency measurements
 - Add noise models + robustness tests
 - Add a second task (avoid obstacles, follow a path)
