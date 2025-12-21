@@ -1,3 +1,5 @@
+# sim.py
+# This file contains the simulation environment for the robot and target.
 from __future__ import annotations
 import math
 import numpy as np

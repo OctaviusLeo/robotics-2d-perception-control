@@ -1,3 +1,5 @@
+# render.yp
+# Rendering functions for the simulation environment
 from __future__ import annotations
 import math
 import numpy as np

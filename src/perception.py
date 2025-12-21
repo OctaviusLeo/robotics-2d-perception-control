@@ -1,3 +1,5 @@
+# perception.py
+# Perception module for detecting the target center in a BGR image.
 from __future__ import annotations
 import numpy as np
 import cv2

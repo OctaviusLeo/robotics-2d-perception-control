@@ -1,3 +1,5 @@
+# control.py
+# This file defines a heading controller and a utility function for clamping values.
 from __future__ import annotations
 import numpy as np
 

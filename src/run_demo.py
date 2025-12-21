@@ -1,3 +1,5 @@
+# run_demo.py
+# This script runs a simulation of a robot navigating to a target using a camera and control algorithms.
 from __future__ import annotations
 import argparse
 import os
