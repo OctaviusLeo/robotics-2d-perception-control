@@ -25,16 +25,18 @@ def wrap_pi(a: float) -> float:
     return a
 
 class World:
-    def __init__(self, cfg: SimConfig):
+    def __init__(self, cfg: SimConfig, with_obstacles: bool = True):
         self.cfg = cfg
         self.robot = RobotState(x=cfg.width * 0.2, y=cfg.height * 0.5, theta=0.0)
         self.target = TargetState(x=cfg.width * 0.8, y=cfg.height * 0.5)
-        # Optional circular obstacles (static). Not used in control yet
-        margin = 80
-        self.obstacles = [
-            (cfg.width * 0.45, cfg.height * 0.35, 28),
-            (cfg.width * 0.55, cfg.height * 0.7, 26),
-        ]
+        # Optional circular obstacles (static). Not used in control yet.
+        if with_obstacles:
+            self.obstacles = [
+                (cfg.width * 0.45, cfg.height * 0.35, 28),
+                (cfg.width * 0.55, cfg.height * 0.7, 26),
+            ]
+        else:
+            self.obstacles = []
 
     def step(self, v: float, w: float) -> None:
         # clamp

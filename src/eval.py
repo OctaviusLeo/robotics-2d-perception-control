@@ -69,6 +69,9 @@ def main() -> None:
             save_gif=False,
             gif_path=None,
             seed=ep_seed,
+            draw_distractors=True,
+            draw_obstacles=True,
+            debug_overlay=False,
         )
         metrics.update({"episode": ep, "seed": ep_seed})
         rows.append(metrics)

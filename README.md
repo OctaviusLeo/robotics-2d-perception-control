@@ -31,6 +31,16 @@ pip install -r requirements.txt
 	python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
 	```
 
+- Clean recording (disable distractors/obstacles):
+	```bash
+	python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles
+	```
+
+- Debug overlay (shows robot camera + mask + centroid + mode):
+	```bash
+	python src/run_demo.py --steps 2000 --seed 0 --debug-overlay
+	```
+
 - Stress test latency/noise + smoothing:
 	```bash
 	python src/run_demo.py --headless --steps 600 \
@@ -51,6 +61,9 @@ pip install -r requirements.txt
 - `--perception-latency` delay detections by N frames.
 - `--meas-noise-px` Gaussian pixel noise added to detections.
 - `--smooth-alpha` exponential smoother for heading error.
+- `--no-distractors` disable cyan distractors.
+- `--no-obstacles` disable obstacles.
+- `--debug-overlay` draw camera+mask+centroid+mode overlay.
 
 ## Future Features
 - Replace color thresholding with a tiny detector and measure latency.

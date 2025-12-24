@@ -18,7 +18,7 @@ from config import SimConfig
 from control import ControlMode, HeadingController, StateMachineController, clamp
 from estimation import ExponentialSmoother
 from perception import detect_target_center_bgr
-from render import draw_world, get_camera_frame_bgr, init_pygame
+from render import draw_debug_overlay, draw_world, get_camera_frame_bgr, init_pygame
 from sim import World
 
 
@@ -36,6 +36,9 @@ def run_episode(
     perception_latency: int = 0,
     meas_noise_px: float = 0.0,
     smooth_alpha: float = 0.35,
+    draw_distractors: bool = True,
+    draw_obstacles: bool = True,
+    debug_overlay: bool = False,
 ) -> Dict[str, float]:
     """Execute one episode and return aggregate metrics."""
 
@@ -48,7 +51,7 @@ def run_episode(
     screen = pygame.display.set_mode((cfg.width, cfg.height))
     clock = pygame.time.Clock()
 
-    world = World(cfg)
+    world = World(cfg, with_obstacles=draw_obstacles)
     ctrl = HeadingController(kp=3.0, kd=0.35)
     sm_ctrl = StateMachineController(
         heading_ctrl=ctrl,
@@ -79,11 +82,11 @@ def run_episode(
         if done:
             break
 
-        draw_world(screen, cfg, world)
+        draw_world(screen, cfg, world, draw_distractors=draw_distractors, draw_obstacles=draw_obstacles)
         frame_bgr = get_camera_frame_bgr(cfg, screen, world)
 
         # Perception with latency and noise
-        center_raw, _, conf_raw = detect_target_center_bgr(frame_bgr)
+        center_raw, mask, conf_raw = detect_target_center_bgr(frame_bgr)
         meas_queue.append((center_raw, conf_raw))
         delayed_center: Optional[Tuple[int, int]] = None
         delayed_conf: float = 0.0
@@ -117,6 +120,17 @@ def run_episode(
             dist=world.distance_to_target(),
             dt=cfg.dt,
         )
+
+        if debug_overlay:
+            draw_debug_overlay(
+                screen,
+                cfg,
+                frame_bgr=frame_bgr,
+                mask=mask,
+                center=center,
+                mode=mode.value,
+                conf=conf,
+            )
 
         v_cmd_hist.append(v_cmd)
         w_cmd_hist.append(w_cmd)
@@ -199,6 +213,13 @@ def main() -> None:
     parser.add_argument("--perception-latency", type=int, default=0, help="Latency in frames to delay perception output.")
     parser.add_argument("--meas-noise-px", type=float, default=0.0, help="Stddev of pixel noise added to detections.")
     parser.add_argument("--smooth-alpha", type=float, default=0.35, help="EMA alpha for heading error smoothing.")
+    parser.add_argument("--no-distractors", action="store_true", help="Disable cyan distractors for cleaner demos.")
+    parser.add_argument("--no-obstacles", action="store_true", help="Disable obstacles for cleaner demos.")
+    parser.add_argument(
+        "--debug-overlay",
+        action="store_true",
+        help="Draw camera+mask+centroid+mode overlay in the main window.",
+    )
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -213,6 +234,9 @@ def main() -> None:
         perception_latency=args.perception_latency,
         meas_noise_px=args.meas_noise_px,
         smooth_alpha=args.smooth_alpha,
+        draw_distractors=not args.no_distractors,
+        draw_obstacles=not args.no_obstacles,
+        debug_overlay=args.debug_overlay,
     )
 
 
