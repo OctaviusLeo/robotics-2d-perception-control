@@ -31,7 +31,7 @@ Headless + GIF (600 sim steps ≈ 10 seconds at 60 Hz):
 python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
 ```
 
-Clean deterministic recording (recommended for video):
+Clean deterministic:
 ```bash
 python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles --camera-mode robot --debug-overlay
 ```
