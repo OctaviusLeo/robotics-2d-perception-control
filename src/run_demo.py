@@ -7,7 +7,8 @@ import csv
 import os
 import random
 import time
-from typing import Dict, List, Optional
+from collections import deque
+from typing import Deque, Dict, List, Optional, Tuple
 
 import imageio.v2 as imageio
 import numpy as np
@@ -15,6 +16,7 @@ import pygame
 
 from config import SimConfig
 from control import HeadingController, clamp
+from estimation import ExponentialSmoother
 from perception import detect_target_center_bgr
 from render import draw_world, get_camera_frame_bgr, init_pygame
 from sim import World
@@ -31,6 +33,9 @@ def run_episode(
     save_gif: bool = False,
     gif_path: Optional[str] = None,
     seed: Optional[int] = None,
+    perception_latency: int = 0,
+    meas_noise_px: float = 0.0,
+    smooth_alpha: float = 0.35,
 ) -> Dict[str, float]:
     """Execute one episode and return aggregate metrics."""
 
@@ -45,6 +50,9 @@ def run_episode(
 
     world = World(cfg)
     ctrl = HeadingController(kp=3.0, kd=0.35)
+    smoother = ExponentialSmoother(alpha=smooth_alpha)
+
+    meas_queue: Deque[Tuple[Optional[Tuple[int, int]], float]] = deque()
 
     frames: List[np.ndarray] = []
     log_rows: List[Dict[str, float]] = []
@@ -67,18 +75,38 @@ def run_episode(
         draw_world(screen, cfg, world)
         frame_bgr = get_camera_frame_bgr(cfg, screen, world)
 
-        center, _, conf = detect_target_center_bgr(frame_bgr)
+        # Perception with latency and noise
+        center_raw, _, conf_raw = detect_target_center_bgr(frame_bgr)
+        meas_queue.append((center_raw, conf_raw))
+        delayed_center: Optional[Tuple[int, int]] = None
+        delayed_conf: float = 0.0
+        if len(meas_queue) > perception_latency:
+            delayed_center, delayed_conf = meas_queue.popleft()
+
+        center = None
+        conf = 0.0
+        if delayed_center is not None:
+            cx_noisy = delayed_center[0] + np.random.normal(0.0, meas_noise_px)
+            cy_noisy = delayed_center[1] + np.random.normal(0.0, meas_noise_px)
+            cx_noisy = float(np.clip(cx_noisy, 0, cfg.cam_w - 1))
+            cy_noisy = float(np.clip(cy_noisy, 0, cfg.cam_h - 1))
+            center = (int(round(cx_noisy)), int(round(cy_noisy)))
+            conf = delayed_conf
 
         if center is not None:
             cx, cy = center
             err = (cx - (cfg.cam_w / 2.0)) / (cfg.cam_w / 2.0)  # normalized [-1,1]
-            w_cmd = clamp(-ctrl.compute(err, cfg.dt), -cfg.w_max, cfg.w_max)
+            filt_err = smoother.update(err)
+            w_cmd = clamp(-ctrl.compute(filt_err, cfg.dt), -cfg.w_max, cfg.w_max)
             v_cmd = cfg.v_max * 0.75
             detections += 1
         else:
+            smoother.reset()
             v_cmd = cfg.v_max * 0.2
             w_cmd = cfg.w_max * 0.6
             cx, cy = None, None
+            err = None
+            filt_err = None
 
         v_cmd_hist.append(v_cmd)
         w_cmd_hist.append(w_cmd)
@@ -108,6 +136,8 @@ def run_episode(
                     "detected_cx": cx if center is not None else "",
                     "detected_cy": cy if center is not None else "",
                     "detect_conf": conf if center is not None else 0.0,
+                    "err_norm": err if err is not None else "",
+                    "err_norm_filtered": filt_err if filt_err is not None else "",
                 }
             )
 
@@ -155,6 +185,9 @@ def main() -> None:
     parser.add_argument("--save-gif", action="store_true", help="Capture GIF when running headless.")
     parser.add_argument("--gif-path", type=str, default=None, help="Optional GIF output path.")
     parser.add_argument("--seed", type=int, default=None, help="Deterministic seed for numpy/random.")
+    parser.add_argument("--perception-latency", type=int, default=0, help="Latency in frames to delay perception output.")
+    parser.add_argument("--meas-noise-px", type=float, default=0.0, help="Stddev of pixel noise added to detections.")
+    parser.add_argument("--smooth-alpha", type=float, default=0.35, help="EMA alpha for heading error smoothing.")
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -166,6 +199,9 @@ def main() -> None:
         save_gif=args.save_gif,
         gif_path=args.gif_path,
         seed=args.seed,
+        perception_latency=args.perception_latency,
+        meas_noise_px=args.meas_noise_px,
+        smooth_alpha=args.smooth_alpha,
     )
 
 
