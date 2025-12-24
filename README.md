@@ -18,13 +18,13 @@ python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run interactive window
+# Run interactive window, this is just what it SHOULD look like.
 python src/run_demo.py
 
-# Headless run with per-step logging and optional GIF
+# Headless run with per-step logging and optional GIF, this will run the script for 600 ms then give you a gif to look at.
 python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
 
-# Batch evaluation (10 episodes, saves outputs/metrics.csv)
+# Batch evaluation (10 episodes, saves outputs/metrics.csv). Each episode is running 6 seconds and outputs success's result, time, and distance for each episode.
 python src/eval.py --episodes 10 --steps 600 --log-dir outputs/logs --metrics-csv outputs/metrics.csv
 ```
 

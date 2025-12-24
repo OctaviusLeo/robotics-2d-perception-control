@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import numpy as np
 import pygame
+import cv2
 from config import SimConfig
 from sim import World
 
@@ -29,10 +30,48 @@ def draw_world(screen: pygame.Surface, cfg: SimConfig, world: World) -> None:
     hy = ry + 26 * math.sin(th)
     pygame.draw.line(screen, (30, 30, 30), (int(rx), int(ry)), (int(hx), int(hy)), width=3)
 
-def get_camera_frame_bgr(cfg: SimConfig, screen: pygame.Surface) -> np.ndarray:
-    # Downsample the full screen into a small "camera" frame
-    surf_small = pygame.transform.smoothscale(screen, (cfg.cam_w, cfg.cam_h))
-    rgb = pygame.surfarray.array3d(surf_small)  # (w,h,3) RGB
-    rgb = np.transpose(rgb, (1, 0, 2))          # -> (h,w,3)
-    bgr = rgb[:, :, ::-1].copy()
+def get_camera_frame_bgr(cfg: SimConfig, screen: pygame.Surface, world: World) -> np.ndarray:
+    """Robot-centric camera: rotate world to align heading, crop ahead, resize to cam size."""
+
+    # Full RGB frame (pygame gives (w,h,3); transpose to (h,w,3) for cv2)
+    rgb_full = pygame.surfarray.array3d(screen)
+    rgb_full = np.transpose(rgb_full, (1, 0, 2))
+
+    H, W, _ = rgb_full.shape
+    cx, cy = float(world.robot.x), float(world.robot.y)
+
+    # Rotate so robot heading points to +x in the rotated frame
+    heading_deg = -math.degrees(world.robot.theta)
+    rot_mat = cv2.getRotationMatrix2D((cx, cy), heading_deg, 1.0)
+    rotated = cv2.warpAffine(
+        rgb_full,
+        rot_mat,
+        (W, H),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+
+    # Define a square view region centered slightly ahead of the robot
+    view_span = max(cfg.cam_w, cfg.cam_h) * 1.8
+    half = view_span * 0.5
+    look_ahead = view_span * 0.3
+
+    center_x = cx + look_ahead
+    center_y = cy
+
+    x0 = int(round(center_x - half))
+    x1 = int(round(center_x + half))
+    y0 = int(round(center_y - half))
+    y1 = int(round(center_y + half))
+
+    x0c, x1c = max(0, x0), min(W, x1)
+    y0c, y1c = max(0, y0), min(H, y1)
+
+    crop = rotated[y0c:y1c, x0c:x1c]
+    if crop.shape[0] == 0 or crop.shape[1] == 0:
+        crop = np.zeros((cfg.cam_h, cfg.cam_w, 3), dtype=np.uint8)
+    else:
+        crop = cv2.resize(crop, (cfg.cam_w, cfg.cam_h), interpolation=cv2.INTER_LINEAR)
+
+    bgr = crop[:, :, ::-1].copy()
     return bgr

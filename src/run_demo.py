@@ -65,7 +65,7 @@ def run_episode(
             break
 
         draw_world(screen, cfg, world)
-        frame_bgr = get_camera_frame_bgr(cfg, screen)
+        frame_bgr = get_camera_frame_bgr(cfg, screen, world)
 
         center, _ = detect_target_center_bgr(frame_bgr)
 
