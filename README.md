@@ -10,6 +10,10 @@ Pipeline: **sense (robot-centric camera) → perceive (color detection) → cont
 - Outputs: per-step CSV logs, GIF capture, batch eval to `outputs/metrics.csv`.
 - Larger 1200x750 window so FOV overlays leave room to see the robot path.
 
+Demo: 
+
+![clean-run demo](outputs/clean-run.gif)
+
 ## Recreate Locally
 ```bash
 git clone https://github.com/yourname/robotics-2d-perception-control.git
