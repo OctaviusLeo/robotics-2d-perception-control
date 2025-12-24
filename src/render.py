@@ -8,6 +8,9 @@ import cv2
 from config import SimConfig
 from sim import World
 
+# Cache distractor layouts per world size
+_DISTRACTOR_CACHE = {}
+
 TARGET_BGR = (255, 255, 0)  # BGR for OpenCV: cyan-ish
 TARGET_RGB = (TARGET_BGR[2], TARGET_BGR[1], TARGET_BGR[0])
 
@@ -17,11 +20,34 @@ def init_pygame(headless: bool) -> None:
         os.environ["SDL_VIDEODRIVER"] = "dummy"
     pygame.init()
 
+def _get_distractors(cfg: SimConfig):
+    key = (cfg.width, cfg.height)
+    if key in _DISTRACTOR_CACHE:
+        return _DISTRACTOR_CACHE[key]
+
+    rng = np.random.default_rng(7)
+    count = 4
+    margin = 50
+    distractors = []
+    for _ in range(count):
+        x = float(rng.uniform(margin, cfg.width - margin))
+        y = float(rng.uniform(margin, cfg.height - margin))
+        r = rng.uniform(8, 14)
+        distractors.append((x, y, r))
+
+    _DISTRACTOR_CACHE[key] = distractors
+    return distractors
+
+
 def draw_world(screen: pygame.Surface, cfg: SimConfig, world: World) -> None:
     screen.fill((245, 245, 245))
 
     # Target
     pygame.draw.circle(screen, TARGET_RGB, (int(world.target.x), int(world.target.y)), cfg.target_radius)
+
+    # Distractors (same hue, smaller blobs) to challenge perception robustness
+    for dx, dy, dr in _get_distractors(cfg):
+        pygame.draw.circle(screen, TARGET_RGB, (int(dx), int(dy)), int(dr))
 
     # Robot
     rx, ry, th = world.robot.x, world.robot.y, world.robot.theta

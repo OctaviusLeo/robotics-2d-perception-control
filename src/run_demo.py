@@ -67,7 +67,7 @@ def run_episode(
         draw_world(screen, cfg, world)
         frame_bgr = get_camera_frame_bgr(cfg, screen, world)
 
-        center, _ = detect_target_center_bgr(frame_bgr)
+        center, _, conf = detect_target_center_bgr(frame_bgr)
 
         if center is not None:
             cx, cy = center
@@ -107,6 +107,7 @@ def run_episode(
                     "detected": center is not None,
                     "detected_cx": cx if center is not None else "",
                     "detected_cy": cy if center is not None else "",
+                    "detect_conf": conf if center is not None else 0.0,
                 }
             )
 
