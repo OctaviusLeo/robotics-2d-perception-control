@@ -21,8 +21,11 @@ pip install -r requirements.txt
 # Run interactive window
 python src/run_demo.py
 
-# Headless mode (saves a GIF to outputs/)
-python src/run_demo.py --headless --steps 600
+# Headless run with per-step logging and optional GIF
+python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
+
+# Batch evaluation (10 episodes, saves outputs/metrics.csv)
+python src/eval.py --episodes 10 --steps 600 --log-dir outputs/logs --metrics-csv outputs/metrics.csv
 ```
 
 ## Future Features
