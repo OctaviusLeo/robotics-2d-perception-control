@@ -28,7 +28,14 @@ class World:
     def __init__(self, cfg: SimConfig, with_obstacles: bool = True):
         self.cfg = cfg
         self.robot = RobotState(x=cfg.width * 0.2, y=cfg.height * 0.5, theta=0.0)
-        self.target = TargetState(x=cfg.width * 0.8, y=cfg.height * 0.5)
+        # Multiple targets the robot should visit in order (left -> right -> bottom)
+        self.targets = [
+            (cfg.width * 0.65, cfg.height * 0.35),
+            (cfg.width * 0.8, cfg.height * 0.5),
+            (cfg.width * 0.7, cfg.height * 0.7),
+        ]
+        self.target_index: int = 0
+        self.targets_done: bool = False
         # Optional circular obstacles (static). Not used in control yet.
         if with_obstacles:
             self.obstacles = [
@@ -52,12 +59,40 @@ class World:
         self.robot.y = float(np.clip(self.robot.y, 20, self.cfg.height - 20))
 
     def distance_to_target(self) -> float:
-        dx = self.target.x - self.robot.x
-        dy = self.target.y - self.robot.y
-        return float(math.sqrt(dx*dx + dy*dy))
+        tgt = self.current_target()
+        if tgt is None:
+            return float("inf")
+        dx = tgt[0] - self.robot.x
+        dy = tgt[1] - self.robot.y
+        return float(math.sqrt(dx * dx + dy * dy))
+
+    def mark_target_reached(self) -> None:
+        self.target_reached = True
 
     def bearing_to_target(self) -> float:
-        dx = self.target.x - self.robot.x
-        dy = self.target.y - self.robot.y
+        tgt = self.current_target()
+        if tgt is None:
+            return 0.0
+        dx = tgt[0] - self.robot.x
+        dy = tgt[1] - self.robot.y
         ang = math.atan2(dy, dx)
         return wrap_pi(ang - self.robot.theta)
+
+    def current_target(self) -> tuple[float, float] | None:
+        if self.target_index >= len(self.targets):
+            return None
+        return self.targets[self.target_index]
+
+    def advance_target(self, goal_threshold: float) -> None:
+        if self.targets_done:
+            return
+        tgt = self.current_target()
+        if tgt is None:
+            self.targets_done = True
+            return
+        dx = tgt[0] - self.robot.x
+        dy = tgt[1] - self.robot.y
+        if math.hypot(dx, dy) <= goal_threshold:
+            self.target_index += 1
+            if self.target_index >= len(self.targets):
+                self.targets_done = True

@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SimConfig:
-    width: int = 900
-    height: int = 600
+    width: int = 1920
+    height: int = 1080
     dt: float = 1.0 / 60.0
 
     # Robot

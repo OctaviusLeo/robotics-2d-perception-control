@@ -6,8 +6,9 @@ Pipeline: **sense (robot-centric camera) → perceive (color detection) → cont
 - Robot-centric camera is now geometry-based (projects target/distractors/obstacles with FOV) for stable detection.
 - Perception: HSV thresholding with morphology, contour filtering, and a confidence score.
 - Control: SEARCH/TRACK/APPROACH FSM with speed scheduling; latency + noise + smoothing options.
-- Environment: static target, optional cyan distractors, optional static obstacles (rendered).
+- Environment: three targets visited in order (each disappears when reached), optional cyan distractors, optional static obstacles (rendered).
 - Outputs: per-step CSV logs, GIF capture, batch eval to `outputs/metrics.csv`.
+- Larger 1200x750 window so FOV overlays leave room to see the robot path.
 
 ## Recreate Locally
 ```bash
@@ -21,9 +22,19 @@ pip install -r requirements.txt
 ```
 
 ## Run Modes
-Interactive window:
+When distracted:
 ```bash
-python src/run_demo.py
+python src/run_demo.py 
+```
+
+The important demo showed:
+```bash
+python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles --camera-mode robot --debug-overlay
+```
+
+One-shot clean GIF (shortcut):
+```bash
+python src/run_demo.py --clean-gif
 ```
 
 Headless + GIF (600 sim steps ≈ 10 seconds at 60 Hz):
@@ -31,16 +42,9 @@ Headless + GIF (600 sim steps ≈ 10 seconds at 60 Hz):
 python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
 ```
 
-Clean deterministic:
-```bash
-python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles --camera-mode robot --debug-overlay
-```
-
 Latency/noise stress + smoothing:
 ```bash
-python src/run_demo.py --headless --steps 600 \
-	--perception-latency 3 --meas-noise-px 2.0 --smooth-alpha 0.4 \
-	--log-csv outputs/run_latency.csv
+python src/run_demo.py --headless --steps 600 --perception-latency 3 --meas-noise-px 2.0 --smooth-alpha 0.4 --log-csv outputs/run_latency.csv
 ```
 
 Batch evaluation (defaults to robot camera):

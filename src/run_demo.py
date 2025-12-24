@@ -28,7 +28,7 @@ from render import (
 from sim import World
 
 
-GOAL_THRESHOLD = 40.0  # px
+GOAL_THRESHOLD = 60.0  # px
 
 
 def run_episode(
@@ -194,12 +194,14 @@ def run_episode(
             )
 
         if world.distance_to_target() < GOAL_THRESHOLD:
-            break
+            world.advance_target(GOAL_THRESHOLD)
+            if world.targets_done:
+                break
 
     total_steps = len(v_cmd_hist)
     sim_time = total_steps * cfg.dt
     elapsed_wall = time.perf_counter() - start_wall
-    success = world.distance_to_target() < GOAL_THRESHOLD
+    success = bool(world.targets_done)
 
     if log_path is not None and log_rows:
         fieldnames = list(log_rows[0].keys())
@@ -219,7 +221,7 @@ def run_episode(
         "success": float(success),
         "steps": total_steps,
         "sim_time_s": sim_time,
-        "distance_final": world.distance_to_target(),
+        "distance_final": 0.0 if world.targets_done else world.distance_to_target(),
         "distance_initial": initial_distance,
         "detection_rate": detections / total_steps if total_steps else 0.0,
         "avg_v_cmd": float(np.mean(v_cmd_hist)) if v_cmd_hist else 0.0,
@@ -253,7 +255,23 @@ def main() -> None:
         default="robot",
         help="Camera mode: 'robot' (robot-centric crop/warp) or 'global' (downsampled world view).",
     )
+    parser.add_argument(
+        "--clean-gif",
+        action="store_true",
+        help="Run a deterministic clean demo (headless, robot camera, no distractors/obstacles) and save outputs/clean-run.gif",
+    )
     args = parser.parse_args()
+
+    if args.clean_gif:
+        args.headless = True
+        args.save_gif = True
+        args.gif_path = args.gif_path or os.path.join("outputs", "clean-run.gif")
+        args.seed = 0 if args.seed is None else args.seed
+        args.steps = max(args.steps, 2000)
+        args.no_distractors = True
+        args.no_obstacles = True
+        args.camera_mode = "robot"
+        args.debug_overlay = True
 
     cfg = SimConfig()
     run_episode(

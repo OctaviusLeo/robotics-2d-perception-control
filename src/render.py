@@ -49,8 +49,15 @@ def draw_world(
 ) -> None:
     screen.fill((245, 245, 245))
 
-    # Target
-    pygame.draw.circle(screen, TARGET_RGB, (int(world.target.x), int(world.target.y)), cfg.target_radius)
+    # Targets: draw remaining; highlight current
+    current = world.current_target()
+    if hasattr(world, "targets"):
+        for idx, (tx, ty) in enumerate(world.targets):
+            if world.targets_done or idx < world.target_index:
+                continue
+            color = TARGET_RGB if idx == world.target_index else (180, 220, 220)
+            radius = cfg.target_radius if idx == world.target_index else int(cfg.target_radius * 0.8)
+            pygame.draw.circle(screen, color, (int(tx), int(ty)), radius)
 
     # Obstacles (gray)
     if draw_obstacles and hasattr(world, "obstacles"):
@@ -165,14 +172,16 @@ def get_camera_frame_bgr(cfg: SimConfig, screen: pygame.Surface, world: World) -
     rx, ry, th = float(world.robot.x), float(world.robot.y), float(world.robot.theta)
 
     # Render target
-    dx = float(world.target.x) - rx
-    dy = float(world.target.y) - ry
-    x_r, y_r = world_to_robot(dx, dy, th)
-    p = project(x_r, y_r)
-    if p is not None:
-        u, v, rng = p
-        radius = int(np.clip(12.0 * (140.0 / (rng + 1.0)), 2, 12))
-        cv2.circle(frame, (u, v), radius, TARGET_BGR, thickness=-1)
+    tgt = world.current_target()
+    if tgt is not None:
+        dx = float(tgt[0]) - rx
+        dy = float(tgt[1]) - ry
+        x_r, y_r = world_to_robot(dx, dy, th)
+        p = project(x_r, y_r)
+        if p is not None:
+            u, v, rng = p
+            radius = int(np.clip(12.0 * (140.0 / (rng + 1.0)), 2, 12))
+            cv2.circle(frame, (u, v), radius, TARGET_BGR, thickness=-1)
 
     # Render distractors (same hue)
     for ox, oy, _ in _get_distractors(cfg):
