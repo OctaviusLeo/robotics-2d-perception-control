@@ -47,6 +47,15 @@ def main() -> None:
     parser.add_argument("--log-dir", type=str, default=None, help="Optional per-episode log directory.")
     parser.add_argument("--metrics-csv", type=str, default=DEFAULT_METRICS_PATH)
     parser.add_argument("--gui", action="store_true", help="Render to a window (slower, for debugging).")
+    parser.add_argument(
+        "--camera-mode",
+        type=str,
+        default="robot",
+        choices=["robot", "global"],
+        help="Camera mode used for perception (robot is recommended).",
+    )
+    parser.add_argument("--no-distractors", action="store_true", help="Disable distractors.")
+    parser.add_argument("--no-obstacles", action="store_true", help="Disable obstacles.")
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -69,9 +78,10 @@ def main() -> None:
             save_gif=False,
             gif_path=None,
             seed=ep_seed,
-            draw_distractors=True,
-            draw_obstacles=True,
+            draw_distractors=not args.no_distractors,
+            draw_obstacles=not args.no_obstacles,
             debug_overlay=False,
+            camera_mode=args.camera_mode,
         )
         metrics.update({"episode": ep, "seed": ep_seed})
         rows.append(metrics)

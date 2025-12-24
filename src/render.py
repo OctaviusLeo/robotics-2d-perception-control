@@ -126,47 +126,86 @@ def draw_debug_overlay(
         pass
 
 def get_camera_frame_bgr(cfg: SimConfig, screen: pygame.Surface, world: World) -> np.ndarray:
-    """Robot-centric camera: rotate world to align heading, crop ahead, resize to cam size."""
+    """Robot-centric camera frame synthesized from geometry.
 
-    # Full RGB frame (pygame gives (w,h,3); transpose to (h,w,3) for cv2)
-    rgb_full = pygame.surfarray.array3d(screen)
-    rgb_full = np.transpose(rgb_full, (1, 0, 2))
+    This avoids the instability of cropping the full rendered screen (which can
+    cause the target to drop out of view due to crop choices).
+    """
 
-    H, W, _ = rgb_full.shape
-    cx, cy = float(world.robot.x), float(world.robot.y)
+    # Background: light gray (in BGR)
+    frame = np.full((cfg.cam_h, cfg.cam_w, 3), 245, dtype=np.uint8)
 
-    # Rotate so robot heading points to +x in the rotated frame
-    heading_deg = -math.degrees(world.robot.theta)
-    rot_mat = cv2.getRotationMatrix2D((cx, cy), heading_deg, 1.0)
-    rotated = cv2.warpAffine(
-        rgb_full,
-        rot_mat,
-        (W, H),
-        flags=cv2.INTER_LINEAR,
-        borderMode=cv2.BORDER_REPLICATE,
-    )
+    def world_to_robot(dx: float, dy: float, theta: float) -> tuple[float, float]:
+        c = math.cos(theta)
+        s = math.sin(theta)
+        # Rotate by -theta into robot frame
+        x_r = c * dx + s * dy
+        y_r = -s * dx + c * dy
+        return x_r, y_r
 
-    # Define a square view region centered slightly ahead of the robot
-    view_span = max(cfg.cam_w, cfg.cam_h) * 1.8
-    half = view_span * 0.5
-    look_ahead = view_span * 0.3
+    def project(x_r: float, y_r: float) -> tuple[int, int, float] | None:
+        if x_r <= 1.0:
+            return None
+        bearing = math.atan2(y_r, x_r)
+        half_fov = cfg.cam_fov * 0.5
+        if abs(bearing) > half_fov:
+            return None
 
-    center_x = cx + look_ahead
-    center_y = cy
+        # Horizontal pixel from bearing
+        u = (bearing / half_fov) * (cfg.cam_w / 2.0) + (cfg.cam_w / 2.0)
 
-    x0 = int(round(center_x - half))
-    x1 = int(round(center_x + half))
-    y0 = int(round(center_y - half))
-    y1 = int(round(center_y + half))
+        # Vertical pixel from range (closer -> lower). Use forward distance as range proxy.
+        max_range = float(cfg.width)  # px in world space
+        v = cfg.cam_h - (x_r / max_range) * cfg.cam_h
 
-    x0c, x1c = max(0, x0), min(W, x1)
-    y0c, y1c = max(0, y0), min(H, y1)
+        u_i = int(np.clip(round(u), 0, cfg.cam_w - 1))
+        v_i = int(np.clip(round(v), 0, cfg.cam_h - 1))
+        return u_i, v_i, x_r
 
-    crop = rotated[y0c:y1c, x0c:x1c]
-    if crop.shape[0] == 0 or crop.shape[1] == 0:
-        crop = np.zeros((cfg.cam_h, cfg.cam_w, 3), dtype=np.uint8)
-    else:
-        crop = cv2.resize(crop, (cfg.cam_w, cfg.cam_h), interpolation=cv2.INTER_LINEAR)
+    rx, ry, th = float(world.robot.x), float(world.robot.y), float(world.robot.theta)
 
-    bgr = crop[:, :, ::-1].copy()
+    # Render target
+    dx = float(world.target.x) - rx
+    dy = float(world.target.y) - ry
+    x_r, y_r = world_to_robot(dx, dy, th)
+    p = project(x_r, y_r)
+    if p is not None:
+        u, v, rng = p
+        radius = int(np.clip(12.0 * (140.0 / (rng + 1.0)), 2, 12))
+        cv2.circle(frame, (u, v), radius, TARGET_BGR, thickness=-1)
+
+    # Render distractors (same hue)
+    for ox, oy, _ in _get_distractors(cfg):
+        dx = float(ox) - rx
+        dy = float(oy) - ry
+        x_r, y_r = world_to_robot(dx, dy, th)
+        p = project(x_r, y_r)
+        if p is None:
+            continue
+        u, v, rng = p
+        radius = int(np.clip(10.0 * (140.0 / (rng + 1.0)), 2, 10))
+        cv2.circle(frame, (u, v), radius, TARGET_BGR, thickness=-1)
+
+    # Render obstacles (gray)
+    if hasattr(world, "obstacles"):
+        for ox, oy, r in world.obstacles:
+            dx = float(ox) - rx
+            dy = float(oy) - ry
+            x_r, y_r = world_to_robot(dx, dy, th)
+            p = project(x_r, y_r)
+            if p is None:
+                continue
+            u, v, rng = p
+            radius = int(np.clip(float(r) * (120.0 / (rng + 1.0)), 2, 14))
+            cv2.circle(frame, (u, v), radius, (140, 140, 140), thickness=-1)
+
+    return frame
+
+
+def get_camera_frame_bgr_global(cfg: SimConfig, screen: pygame.Surface) -> np.ndarray:
+    """Global camera (baseline): downsample the full screen into a small frame."""
+    surf_small = pygame.transform.smoothscale(screen, (cfg.cam_w, cfg.cam_h))
+    rgb = pygame.surfarray.array3d(surf_small)  # (w,h,3) RGB
+    rgb = np.transpose(rgb, (1, 0, 2))          # -> (h,w,3)
+    bgr = rgb[:, :, ::-1].copy()
     return bgr

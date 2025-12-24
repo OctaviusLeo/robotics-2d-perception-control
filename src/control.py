@@ -18,6 +18,9 @@ class HeadingController:
         self._prev = err
         return float(self.kp * err + self.kd * derr)
 
+    def reset(self) -> None:
+        self._prev = 0.0
+
 
 class ControlMode(enum.Enum):
     SEARCH = "search"
@@ -34,7 +37,7 @@ class StateMachineController:
         v_max: float,
         w_max: float,
         approach_radius: float = 140.0,
-        lost_frames_for_search: int = 8,
+        lost_frames_for_search: int = 20,
     ):
         self.heading_ctrl = heading_ctrl
         self.v_max = float(v_max)
@@ -59,18 +62,18 @@ class StateMachineController:
 
         # Compute commands per mode
         if self.mode == ControlMode.SEARCH:
-            v_cmd = self.v_max * 0.2
-            w_cmd = self.w_max * 0.6
+            v_cmd = self.v_max * 0.25
+            w_cmd = self.w_max * 0.7
         else:
             if err is None:
                 v_cmd = self.v_max * 0.2
                 w_cmd = self.w_max * 0.5
             else:
-                w_cmd = clamp(-self.heading_ctrl.compute(err, dt), -self.w_max, self.w_max)
+                w_cmd = clamp(self.heading_ctrl.compute(err, dt), -self.w_max, self.w_max)
                 heading_mag = abs(err)
                 if self.mode == ControlMode.TRACK:
-                    speed_scale = max(0.3, 1.0 - 0.7 * heading_mag)
-                    v_cmd = self.v_max * 0.85 * speed_scale
+                    speed_scale = max(0.6, 1.0 - 0.6 * heading_mag)
+                    v_cmd = self.v_max * 0.95 * speed_scale
                 else:  # APPROACH
                     dist_scale = max(0.15, min(1.0, dist / self.approach_radius))
                     speed_scale = max(0.25, 1.0 - 0.5 * heading_mag)

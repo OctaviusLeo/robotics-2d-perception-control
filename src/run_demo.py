@@ -18,7 +18,13 @@ from config import SimConfig
 from control import ControlMode, HeadingController, StateMachineController, clamp
 from estimation import ExponentialSmoother
 from perception import detect_target_center_bgr
-from render import draw_debug_overlay, draw_world, get_camera_frame_bgr, init_pygame
+from render import (
+    draw_debug_overlay,
+    draw_world,
+    get_camera_frame_bgr,
+    get_camera_frame_bgr_global,
+    init_pygame,
+)
 from sim import World
 
 
@@ -39,6 +45,7 @@ def run_episode(
     draw_distractors: bool = True,
     draw_obstacles: bool = True,
     debug_overlay: bool = False,
+    camera_mode: str = "robot",
 ) -> Dict[str, float]:
     """Execute one episode and return aggregate metrics."""
 
@@ -58,7 +65,7 @@ def run_episode(
         v_max=cfg.v_max,
         w_max=cfg.w_max,
         approach_radius=140.0,
-        lost_frames_for_search=8,
+        lost_frames_for_search=20,
     )
     smoother = ExponentialSmoother(alpha=smooth_alpha)
 
@@ -69,6 +76,10 @@ def run_episode(
     detections = 0
     v_cmd_hist: List[float] = []
     w_cmd_hist: List[float] = []
+
+    hold_last_err_frames = 30
+    hold_counter = 0
+    last_filt_err: Optional[float] = None
 
     done = False
     initial_distance = world.distance_to_target()
@@ -83,7 +94,10 @@ def run_episode(
             break
 
         draw_world(screen, cfg, world, draw_distractors=draw_distractors, draw_obstacles=draw_obstacles)
-        frame_bgr = get_camera_frame_bgr(cfg, screen, world)
+        if camera_mode == "global":
+            frame_bgr = get_camera_frame_bgr_global(cfg, screen)
+        else:
+            frame_bgr = get_camera_frame_bgr(cfg, screen, world)
 
         # Perception with latency and noise
         center_raw, mask, conf_raw = detect_target_center_bgr(frame_bgr)
@@ -108,15 +122,27 @@ def run_episode(
             err = (cx - (cfg.cam_w / 2.0)) / (cfg.cam_w / 2.0)  # normalized [-1,1]
             filt_err = smoother.update(err)
             detections += 1
+            last_filt_err = filt_err
+            hold_counter = 0
         else:
             smoother.reset()
+            ctrl.reset()
             cx, cy = None, None
             err = None
             filt_err = None
 
+            # If we recently had a track, keep turning/moving briefly using the last estimate.
+            if last_filt_err is not None and hold_counter < hold_last_err_frames:
+                hold_counter += 1
+                filt_err = last_filt_err
+            else:
+                last_filt_err = None
+                hold_counter = 0
+
+        have_estimate = filt_err is not None
         v_cmd, w_cmd, mode = sm_ctrl.step(
-            detected=center is not None,
-            err=filt_err if center is not None else None,
+            detected=have_estimate,
+            err=filt_err if have_estimate else None,
             dist=world.distance_to_target(),
             dt=cfg.dt,
         )
@@ -163,6 +189,7 @@ def run_episode(
                     "err_norm": err if err is not None else "",
                     "err_norm_filtered": filt_err if filt_err is not None else "",
                     "mode": mode.value if center is not None else sm_ctrl.mode.value,
+                    "holding_estimate": int(center is None and have_estimate),
                 }
             )
 
@@ -220,6 +247,12 @@ def main() -> None:
         action="store_true",
         help="Draw camera+mask+centroid+mode overlay in the main window.",
     )
+    parser.add_argument(
+        "--camera-mode",
+        choices=["robot", "global"],
+        default="robot",
+        help="Camera mode: 'robot' (robot-centric crop/warp) or 'global' (downsampled world view).",
+    )
     args = parser.parse_args()
 
     cfg = SimConfig()
@@ -237,6 +270,7 @@ def main() -> None:
         draw_distractors=not args.no_distractors,
         draw_obstacles=not args.no_obstacles,
         debug_overlay=args.debug_overlay,
+        camera_mode=args.camera_mode,
     )
 
 

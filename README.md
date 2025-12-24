@@ -3,10 +3,10 @@ Purely virtual 2D differential-drive robot with a minimal perception -> control 
 
 Pipeline: **sense (robot-centric camera) → perceive (color detection) → control (heading FSM) → act (update state)**
 
-- Robot-centric camera crop/warp (pose + heading) into a small frame.
+- Robot-centric camera is now geometry-based (projects target/distractors/obstacles with FOV) for stable detection.
 - Perception: HSV thresholding with morphology, contour filtering, and a confidence score.
-- Control: SEARCH/TRACK/APPROACH FSM with speed scheduling on heading error and distance; latency + noise + smoothing options.
-- Environment: static target, cyan distractors, optional static obstacles (rendered).
+- Control: SEARCH/TRACK/APPROACH FSM with speed scheduling; latency + noise + smoothing options.
+- Environment: static target, optional cyan distractors, optional static obstacles (rendered).
 - Outputs: per-step CSV logs, GIF capture, batch eval to `outputs/metrics.csv`.
 
 ## Recreate Locally
@@ -21,37 +21,32 @@ pip install -r requirements.txt
 ```
 
 ## Run Modes
-- Interactive window: 
-	```bash
-	python src/run_demo.py
-	```
+Interactive window:
+```bash
+python src/run_demo.py
+```
 
-- Headless with logging/GIF (600 sim steps ≈ 10 seconds at 60 Hz):
-	```bash
-	python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
-	```
+Headless + GIF (600 sim steps ≈ 10 seconds at 60 Hz):
+```bash
+python src/run_demo.py --headless --steps 600 --log-csv outputs/run1.csv --save-gif --gif-path outputs/run1.gif
+```
 
-- Clean recording (disable distractors/obstacles):
-	```bash
-	python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles
-	```
+Clean deterministic recording (recommended for video):
+```bash
+python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles --camera-mode robot --debug-overlay
+```
 
-- Debug overlay (shows robot camera + mask + centroid + mode):
-	```bash
-	python src/run_demo.py --steps 2000 --seed 0 --debug-overlay
-	```
+Latency/noise stress + smoothing:
+```bash
+python src/run_demo.py --headless --steps 600 \
+	--perception-latency 3 --meas-noise-px 2.0 --smooth-alpha 0.4 \
+	--log-csv outputs/run_latency.csv
+```
 
-- Stress test latency/noise + smoothing:
-	```bash
-	python src/run_demo.py --headless --steps 600 \
-		--perception-latency 3 --meas-noise-px 2.0 --smooth-alpha 0.4 \
-		--log-csv outputs/run_latency.csv
-	```
-
-- Batch evaluation (10 episodes, each 600 steps):
-	```bash
-	python src/eval.py --episodes 10 --steps 600 --log-dir outputs/logs --metrics-csv outputs/metrics.csv
-	```
+Batch evaluation (defaults to robot camera):
+```bash
+python src/eval.py --episodes 10 --steps 600 --camera-mode robot --no-distractors --no-obstacles --metrics-csv outputs/metrics.csv
+```
 
 ## Key CLI Flags
 - `--headless` use dummy video driver (no window) and enable GIF capture.
@@ -64,8 +59,9 @@ pip install -r requirements.txt
 - `--no-distractors` disable cyan distractors.
 - `--no-obstacles` disable obstacles.
 - `--debug-overlay` draw camera+mask+centroid+mode overlay.
+- `--camera-mode` choose `robot` (geometry-based) or `global` (full-scene downsample).
 
 ## Future Features
-- Replace color thresholding with a tiny detector and measure latency.
-- Add noise models + robustness tests.
-- Add a second task (avoid obstacles with reactive policy, or follow a path / waypoints).
+- Learned detector in place of color thresholding (with measured latency).
+- Obstacle-aware control (reactive avoidance or simple planner) tied to perception.
+- Trajectory task: follow waypoints while keeping the target in view.

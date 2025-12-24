@@ -32,7 +32,7 @@ def detect_target_center_bgr(frame_bgr: np.ndarray):
     best_score = 0.0
     for c in cnts:
         area = cv2.contourArea(c)
-        if area < 40:  # filter small blobs
+        if area < 15:  # filter small blobs
             continue
 
         peri = cv2.arcLength(c, True)
