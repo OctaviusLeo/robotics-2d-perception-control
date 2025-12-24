@@ -1,5 +1,5 @@
 # Robotics 2D — Perception + Control Loop (Demo)
-This is purely virtual. There is no hardware involved however if flashed onto an MCU with everything set-up, hopefully it'l work.
+This is purely virtual. There is no hardware involved however if flashed onto an MCU with everything set-up, hopefully it'll work.
 
 A minimal robotics-style loop:
 **sense (camera frame) -> perceive (detect target) -> control (drive robot) -> act (update state)**
