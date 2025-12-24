@@ -9,6 +9,8 @@ A minimal robotics-style loop:
 - Perception uses OpenCV color thresholding to find the target.
 - Controller steers toward target with a PID-like heading controller.
 
+Demo: 
+
 ## Quickstart
 ```bash
 python -m venv .venv
