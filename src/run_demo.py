@@ -15,7 +15,7 @@ import numpy as np
 import pygame
 
 from config import SimConfig
-from control import HeadingController, clamp
+from control import ControlMode, HeadingController, StateMachineController, clamp
 from estimation import ExponentialSmoother
 from perception import detect_target_center_bgr
 from render import draw_world, get_camera_frame_bgr, init_pygame
@@ -50,6 +50,13 @@ def run_episode(
 
     world = World(cfg)
     ctrl = HeadingController(kp=3.0, kd=0.35)
+    sm_ctrl = StateMachineController(
+        heading_ctrl=ctrl,
+        v_max=cfg.v_max,
+        w_max=cfg.w_max,
+        approach_radius=140.0,
+        lost_frames_for_search=8,
+    )
     smoother = ExponentialSmoother(alpha=smooth_alpha)
 
     meas_queue: Deque[Tuple[Optional[Tuple[int, int]], float]] = deque()
@@ -97,16 +104,19 @@ def run_episode(
             cx, cy = center
             err = (cx - (cfg.cam_w / 2.0)) / (cfg.cam_w / 2.0)  # normalized [-1,1]
             filt_err = smoother.update(err)
-            w_cmd = clamp(-ctrl.compute(filt_err, cfg.dt), -cfg.w_max, cfg.w_max)
-            v_cmd = cfg.v_max * 0.75
             detections += 1
         else:
             smoother.reset()
-            v_cmd = cfg.v_max * 0.2
-            w_cmd = cfg.w_max * 0.6
             cx, cy = None, None
             err = None
             filt_err = None
+
+        v_cmd, w_cmd, mode = sm_ctrl.step(
+            detected=center is not None,
+            err=filt_err if center is not None else None,
+            dist=world.distance_to_target(),
+            dt=cfg.dt,
+        )
 
         v_cmd_hist.append(v_cmd)
         w_cmd_hist.append(w_cmd)
@@ -138,6 +148,7 @@ def run_episode(
                     "detect_conf": conf if center is not None else 0.0,
                     "err_norm": err if err is not None else "",
                     "err_norm_filtered": filt_err if filt_err is not None else "",
+                    "mode": mode.value if center is not None else sm_ctrl.mode.value,
                 }
             )
 

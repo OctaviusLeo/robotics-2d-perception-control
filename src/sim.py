@@ -29,6 +29,12 @@ class World:
         self.cfg = cfg
         self.robot = RobotState(x=cfg.width * 0.2, y=cfg.height * 0.5, theta=0.0)
         self.target = TargetState(x=cfg.width * 0.8, y=cfg.height * 0.5)
+        # Optional circular obstacles (static). Not used in control yet
+        margin = 80
+        self.obstacles = [
+            (cfg.width * 0.45, cfg.height * 0.35, 28),
+            (cfg.width * 0.55, cfg.height * 0.7, 26),
+        ]
 
     def step(self, v: float, w: float) -> None:
         # clamp

@@ -45,6 +45,11 @@ def draw_world(screen: pygame.Surface, cfg: SimConfig, world: World) -> None:
     # Target
     pygame.draw.circle(screen, TARGET_RGB, (int(world.target.x), int(world.target.y)), cfg.target_radius)
 
+    # Obstacles (gray)
+    if hasattr(world, "obstacles"):
+        for ox, oy, r in world.obstacles:
+            pygame.draw.circle(screen, (120, 120, 120), (int(ox), int(oy)), int(r))
+
     # Distractors (same hue, smaller blobs) to challenge perception robustness
     for dx, dy, dr in _get_distractors(cfg):
         pygame.draw.circle(screen, TARGET_RGB, (int(dx), int(dy)), int(dr))
