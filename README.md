@@ -12,7 +12,7 @@ Pipeline: **sense (robot-centric camera) → perceive (color detection) → cont
 
 Demo: 
 
-![clean-run demo](outputs/clean-run.gif)
+![clean-run demo](assets/clean-run.gif)
 
 ## Recreate Locally
 ```bash
