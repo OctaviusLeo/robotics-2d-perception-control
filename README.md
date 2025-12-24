@@ -1,16 +1,16 @@
 # Robotics 2D — Perception + Control Loop (Demo)
 Purely virtual 2D differential-drive robot with a minimal perception -> control -> act loop.
 
-Pipeline: **sense (robot-centric camera) → perceive (color detection) → control (heading FSM) → act (update state)**
+Pipeline: **sense (robot-centric camera) -> perceive (color detection) -> control (heading FSM) -> act (update state)**
 
 - Robot-centric camera is now geometry-based (projects target/distractors/obstacles with FOV) for stable detection.
 - Perception: HSV thresholding with morphology, contour filtering, and a confidence score.
 - Control: SEARCH/TRACK/APPROACH FSM with speed scheduling; latency + noise + smoothing options.
 - Environment: three targets visited in order (each disappears when reached), optional cyan distractors, optional static obstacles (rendered).
 - Outputs: per-step CSV logs, GIF capture, batch eval to `outputs/metrics.csv`.
-- Larger 1200x750 window so FOV overlays leave room to see the robot path.
+- Larger 1920x1080 window so FOV overlays leave room to see the robot path.
 
-Demo: 
+Demo:
 
 ![clean-run demo](assets/clean-run.gif)
 
@@ -31,12 +31,12 @@ When distracted:
 python src/run_demo.py 
 ```
 
-The important demo showed:
+Clean deterministic:
 ```bash
 python src/run_demo.py --steps 2000 --seed 0 --no-distractors --no-obstacles --camera-mode robot --debug-overlay
 ```
 
-One-shot clean GIF (shortcut):
+The Demo Showed Above:
 ```bash
 python src/run_demo.py --clean-gif
 ```
@@ -57,10 +57,11 @@ python src/eval.py --episodes 10 --steps 600 --camera-mode robot --no-distractor
 ```
 
 ## Key CLI Flags
-- `--headless` use dummy video driver (no window) and enable GIF capture.
+- `--headless` use dummy video driver (no window).
 - `--steps` simulation steps to run (60 steps ≈ 1 s).
 - `--log-csv` write per-step telemetry (pose, cmds, detection, errors, mode).
-- `--save-gif` / `--gif-path` capture a GIF of the run when headless.
+- `--save-gif` / `--gif-path` capture a GIF (use with `--headless`).
+- `--clean-gif` one-shot clean run that saves `outputs/clean-run.gif`.
 - `--perception-latency` delay detections by N frames.
 - `--meas-noise-px` Gaussian pixel noise added to detections.
 - `--smooth-alpha` exponential smoother for heading error.
