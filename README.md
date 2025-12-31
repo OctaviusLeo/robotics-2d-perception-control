@@ -97,7 +97,7 @@ The system simulates realistic challenges including:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/robotics-2d-perception-control.git
+   git clone https://github.com/OctaviusLeo/robotics-2d-perception-control.git
    cd robotics-2d-perception-control
    ```
 
@@ -304,4 +304,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with Python, OpenCV, and Pygame** | For questions or collaboration: [Your Contact/GitHub Profile]
+**Built with Python, OpenCV, and Pygame** | For questions or collaboration: OctaviusLeo
