@@ -17,7 +17,7 @@ A complete implementation of a 2D differential-drive robot simulation featuring 
   - [Command-Line Options](#command-line-options)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
-- [Testing & Evaluation](#testing--evaluation)
+- [Testing and Evaluation](#testing-and-evaluation)
 - [Technical Details](#technical-details)
 - [Future Enhancements](#future-enhancements)
 - [License](#license)
@@ -247,19 +247,24 @@ python src/eval.py --episodes 20 --steps 800 --metrics-csv outputs/metrics.csv
 
 ### Output Metrics
 
-Generated CSV includes:
-- Success rate (targets reached)
-- Average time to target
-- Path efficiency
-- Detection confidence statistics
-- Control mode distribution
+The metrics CSV includes (per episode):
+- success
+- steps
+- sim_time_s
+- distance_initial
+- distance_final
+- detection_rate
+- avg_v_cmd
+- avg_w_cmd
+- runtime_s
 
 ### Analyzing Logs
 
 Per-step CSV logs contain:
 ```
-timestamp, x, y, theta, v, omega, target_detected, confidence, 
-heading_error, control_mode, target_x, target_y, ...
+step, sim_time_s, robot_x, robot_y, robot_theta, target_x, target_y, distance_to_target,
+v_cmd, w_cmd, detected, detected_cx, detected_cy, detect_conf, err_norm, err_norm_filtered,
+mode, holding_estimate
 ```
 
 Use with pandas/matplotlib for detailed analysis:
@@ -302,6 +307,4 @@ df = pd.read_csv('outputs/run1.csv')
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
-
-**Built with Python, OpenCV, and Pygame** | For questions or collaboration: OctaviusLeo
+For questions or collaboration: OctaviusLeo
