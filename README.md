@@ -22,6 +22,14 @@ A complete implementation of a 2D differential-drive robot simulation featuring 
 - [Future Enhancements](#future-enhancements)
 - [License](#license)
 
+---
+
+## Demo
+
+![Robot Navigation Demo](assets/clean-run.gif)
+
+*The robot autonomously navigates to sequential targets using vision-based perception and finite-state machine control.*
+
 ## Overview
 
 This project implements a virtual 2D autonomous robot that demonstrates the complete perception-control-action pipeline used in real robotics systems. The robot navigates through a simulated environment to sequentially reach multiple targets while avoiding distractors and obstacles.
@@ -54,12 +62,6 @@ The system simulates realistic challenges including:
 - GIF capture for visualizations
 - Batch evaluation with performance metrics export
 - Debug overlay showing camera FOV, detection masks, and state information
-
-## Demo
-
-![Robot Navigation Demo](assets/clean-run.gif)
-
-*The robot autonomously navigates to sequential targets using vision-based perception and finite-state machine control.*
 
 ## System Architecture
 
