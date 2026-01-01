@@ -88,6 +88,9 @@ The system simulates realistic challenges including:
 
 ## Installation
 
+<details>
+<summary><b>Click to expand installation instructions</b></summary>
+
 ### Prerequisites
 - Python 3.8 or higher
 - pip package manager
@@ -126,6 +129,8 @@ The system simulates realistic challenges including:
 - `opencv-python>=4.8.0` - Computer vision and image processing
 - `imageio>=2.31.0` - GIF generation
 
+</details>
+
 ## Usage
 
 ### Quick Start
@@ -136,6 +141,9 @@ python src/run_demo.py
 ```
 
 ### Running Modes
+
+<details>
+<summary><b>Click to expand example commands</b></summary>
 
 #### 1. Clean Deterministic Run
 Perfect conditions for algorithm validation:
@@ -167,7 +175,12 @@ Run multiple episodes and collect performance metrics:
 python src/eval.py --episodes 10 --steps 600 --camera-mode robot --no-distractors --no-obstacles --metrics-csv outputs/metrics.csv
 ```
 
+</details>
+
 ### Command-Line Options
+
+<details>
+<summary><b>Click to expand all CLI flags</b></summary>
 
 | Flag | Description |
 |------|-------------|
@@ -186,7 +199,12 @@ python src/eval.py --episodes 10 --steps 600 --camera-mode robot --no-distractor
 | `--debug-overlay` | Show camera FOV, masks, and state info |
 | `--camera-mode MODE` | Choose `robot` (geometry) or `global` (full scene) |
 
+</details>
+
 ## Project Structure
+
+<details>
+<summary><b>Click to expand directory tree</b></summary>
 
 ```
 robotics-2d-perception-control/
@@ -210,7 +228,12 @@ robotics-2d-perception-control/
 └── README.md                 # This file
 ```
 
+</details>
+
 ## Configuration
+
+<details>
+<summary><b>Click to expand configuration parameters</b></summary>
 
 Key parameters can be adjusted in [src/config.py](src/config.py):
 
@@ -235,7 +258,12 @@ SimConfig:
     target_radius: 16 px
 ```
 
+</details>
+
 ## Testing and Evaluation
+
+<details>
+<summary><b>Click to expand evaluation and logging details</b></summary>
 
 ### Running Evaluations
 
@@ -274,7 +302,12 @@ df = pd.read_csv('outputs/run1.csv')
 # Analyze trajectory, control behavior, detection performance
 ```
 
+</details>
+
 ## Technical Details
+
+<details>
+<summary><b>Click to expand technical implementation details</b></summary>
 
 ### Perception Pipeline
 1. **Camera Projection**: Geometry-based FOV projection of world objects
@@ -293,6 +326,8 @@ df = pd.read_csv('outputs/run1.csv')
 - **Latency Simulation**: Queue-based delay of perception outputs
 - **Measurement Noise**: Gaussian noise added to pixel coordinates
 - **Exponential Smoothing**: Filters heading error for stable control
+
+</details>
 
 ## Future Enhancements
 
